@@ -1,0 +1,1090 @@
+# ! pip install dash   
+# ! pip install dash-html-components                                         
+# ! pip install dash-core-components                                     
+# ! pip install plotly
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import pandas as pd
+import plotly.graph_objs as go
+from dash.dependencies import Input, Output
+import numpy as np
+from plotly.subplots import make_subplots
+import plotly.express as px
+import plotly.graph_objects as go
+import json
+import folium
+import requests
+import mimetypes
+import http.client
+import numpy as np
+import matplotlib.pyplot as plt
+from folium.plugins import HeatMap
+from pandas.io.json import json_normalize
+import seaborn as sns
+
+#COVID
+conn= http.client.HTTPSConnection("api.covid19api.com")
+payload=''
+headers={}
+conn.request("GET","/summary",payload,headers)
+res=conn.getresponse()
+data=res.read().decode('UTF-8')
+pd.set_option("display.max_rows", None, "display.max_columns", None)
+covid1=json.loads(data)
+pd.json_normalize(covid1['Countries'],sep=",")
+df=pd.DataFrame(covid1['Countries'])
+covid2=df.drop(columns=['ID','CountryCode','Slug','Date','Premium'],axis=1)
+covid2=covid2.sort_values(by=['TotalConfirmed'],ascending=False)
+covid2['Country'] = covid2['Country'].replace('Russian Federation', 'Russia')
+covid2['Country'] = covid2['Country'].replace('Iran, Islamic Republic of', 'Iran')
+covid2['Country'] = covid2['Country'].replace('Venezuela (Bolivarian Republic)', 'Venezuela')
+covid3=covid2
+
+# SARS
+sars_03 = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\sars_2003_complete_dataset_clean.csv",parse_dates=['Date'])
+sars_03 = sars_03[['Date', 'Country', 'Cumulative number of case(s)','Number of deaths', 'Number recovered']]
+sars_03.columns = ['Date', 'Country', 'Cases', 'Deaths', 'Recovered']
+sars_03 = sars_03.groupby(['Date', 'Country'])
+sars_03 = sars_03.sum().reset_index()
+sars_03['Cases'] = sars_03['Cases'].fillna(0)
+sars_03['Deaths'] = sars_03['Deaths'].fillna(0)
+sars_03['Recovered'] = sars_03['Recovered'].fillna(0)
+sars_latest = sars_03[sars_03['Date'] == max(sars_03['Date'])].reset_index()
+sars_latest=sars_latest.sort_values(by=['Cases'],ascending=False)
+
+# H1N1
+h1n1_09 = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\Pandemic_H1N1_2009.csv",parse_dates=['Update Time'])
+h1n1_09 = h1n1_09[['Update Time', 'Country', 'Cases','Deaths']]
+h1n1_09 = h1n1_09.groupby(['Update Time', 'Country'])
+h1n1_09 = h1n1_09.sum().reset_index()
+h1n1_09['Cases'] = h1n1_09['Cases'].fillna(0)
+h1n1_09['Deaths'] = h1n1_09['Deaths'].fillna(0)
+h1n1_09['Deaths'] = h1n1_09['Deaths'].astype('int')
+h1n1_latest=h1n1_09[h1n1_09['Update Time'] == max(h1n1_09['Update Time'])].reset_index()
+h1n1_latest=h1n1_latest.sort_values(by=['Cases'],ascending=False)
+h1n1_latest=h1n1_latest.drop([43])
+
+# EBOLA
+ebola_14 = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\ebola_2014_2016_clean.csv",parse_dates=['Date'])
+ebola_14 = ebola_14[['Date', 'Country',
+ 'Cumulative no. of confirmed, probable and suspected cases','Cumulative no. of confirmed, probable and suspected deaths']]
+ebola_14.columns = ['Date', 'Country', 'Cases', 'Deaths']
+ebola_14 = ebola_14.groupby(['Date', 'Country'])
+ebola_14 = ebola_14.sum().reset_index()
+ebola_14['Cases'] = ebola_14['Cases'].fillna(0)
+ebola_14['Deaths'] = ebola_14['Deaths'].fillna(0)
+ebola_14['Cases'] = ebola_14['Cases'].astype('int')
+ebola_14['Deaths'] = ebola_14['Deaths'].astype('int')
+ebola_latest = ebola_14[ebola_14['Date'] == max(ebola_14['Date'])].reset_index()
+ebola_latest=ebola_latest.sort_values(by=['Cases'],ascending=False)
+
+#MERS
+mers_latest = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\country_count_latest.csv")
+mers_latest=mers_latest.sort_values(by=['Confirmed'],ascending=False)
+
+coordinates=pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\world_country_and_usa_states_latitude_and_longitude_values.csv")
+coordinates = coordinates.rename(columns={'country': 'Country'})
+coordinates= coordinates.drop(columns=['country_code', 'usa_state_code','usa_state_latitude','usa_state_longitude','usa_state'])
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.TotalConfirmed,point.TotalRecovered],
+                        fill_color='#000000').add_to(m)
+##########################################################################################################################
+############################                               TREEMAP                        ################################
+##########################################################################################################################
+
+fig = px.treemap(covid3, names='Country', parents=[""]*len(covid3), values='TotalConfirmed')
+fig.add_trace(go.Treemap(
+    labels = list(covid3.Country),
+    parents = [""]*len(covid3),
+    values =  list(covid3.TotalConfirmed),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+covid_treemap=fig
+
+h_df=h1n1_latest
+fig = px.treemap(h_df, names='Country', parents=[""]*len(h_df), values='Cases')
+fig.add_trace(go.Treemap(
+    labels = list(h_df.Country),
+    parents = [""]*len(h_df),
+    values =  list(h_df.Cases),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+h1n1_treemap=fig
+
+s_df=sars_latest
+fig = px.treemap(s_df, names='Country', parents=[""]*len(s_df), values='Cases')
+fig.add_trace(go.Treemap(
+    labels = list(s_df.Country),
+    parents = [""]*len(s_df),
+    values =  list(s_df.Cases),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+sars_treemap=fig
+
+m_df=mers_latest
+fig = px.treemap(m_df, names='Country', parents=[""]*len(m_df), values='Confirmed')
+fig.add_trace(go.Treemap(
+    labels = list(m_df.Country),
+    parents = [""]*len(m_df),
+    values =  list(m_df.Confirmed),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+mers_treemap=fig
+
+e_df=ebola_latest
+fig = px.treemap(e_df, names='Country', parents=[""]*len(e_df), values='Cases')
+fig.add_trace(go.Treemap(
+    labels = list(e_df.Country),
+    parents = [""]*len(e_df),
+    values =  list(e_df.Cases),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+ebola_treemap=fig
+#############################################################################################################################
+
+#############################################################################################################################
+######################################            GEOSPATIAL MAP          ###################################################
+#############################################################################################################################
+
+# H1N1 
+m6=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='H1N1',
+    data=h1n1_latest,
+    columns=['Country','Cases'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed H1N1 Cases',
+).add_to(m6)
+h1n1_final=pd.merge(h1n1_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Cases,point.Deaths],
+                        fill_color='#000000').add_to(m6)
+    
+h1n1_final.apply(plotDot,axis=1)
+m6.fit_bounds(m6.get_bounds())
+h1n1_geospatialmap=m6
+
+
+# SARS
+m4=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='SARS',
+    data=sars_latest,
+    columns=['Country','Cases'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed SARS Cases',
+).add_to(m4)
+sars_final=pd.merge(sars_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Cases,point.Deaths],
+                        fill_color='#000000').add_to(m4)
+
+sars_final.apply(plotDot,axis=1)
+m4.fit_bounds(m4.get_bounds())
+sars_geospatialmap=m4
+
+# MERS
+m5=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='MERS',
+    data=mers_latest,
+    columns=['Country','Confirmed'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed MERS Cases',
+).add_to(m5)
+mers_final=pd.merge(mers_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Confirmed],
+                        fill_color='#000000').add_to(m5)
+    
+mers_final.apply(plotDot,axis=1)
+m5.fit_bounds(m5.get_bounds())
+mers_geospatialmap=m5
+
+#EBOLA
+m3=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='EBOLA',
+    data=ebola_latest,
+    columns=['Country','Cases'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed EBOLA Cases',
+).add_to(m3)
+ebola_final=pd.merge(ebola_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Cases,point.Deaths],
+                        fill_color='#000000').add_to(m3)
+    
+ebola_final.apply(plotDot,axis=1)
+m3.fit_bounds(m3.get_bounds())
+ebola_geospatialmap=m3
+
+#COVID
+m=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='Covid-19',
+    data=covid3,
+    columns=['Country','TotalConfirmed'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed Covid Cases',
+).add_to(m)
+covid_final=pd.merge(covid3,coordinates,on='Country')
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.TotalConfirmed,point.TotalRecovered],
+                        fill_color='#000000').add_to(m)
+    
+covid_final.apply(plotDot,axis=1)
+m.fit_bounds(m.get_bounds())
+covid_geospatialmap = m
+#############################################################################################################################
+
+#############################################################################################################################
+######################################            STATISTICAL FIG          ###################################################
+#############################################################################################################################
+
+df = pd.read_csv(r'C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\PANDEMIC.csv')
+df.sort_values('CONFIRMED', ascending =False)
+
+color = ['aqua', 'lightcoral', 'yellowgreen', 'mediumpurple', 'mediumturquoise']
+rcolor = ['mediumturquoise', 'mediumpurple', 'yellowgreen', 'lightcoral', 'aqua']
+df2 = df.sort_values('DEATHS')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC")
+confirmed_bar=fig
+
+df2 = df.sort_values('CONFIRMED')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC", log_y=True)
+confirmed_log_bar=fig
+
+df2 = df.sort_values('CONFIRMED')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC")
+death_bar=fig
+
+df2 = df.sort_values('CONFIRMED')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC", log_y=True)
+death_log_bar=fig
+
+df2 = df.sort_values('RECOVERED')
+fig = px.bar(df2, x='EPIDEMIC', y='RECOVERED',color = "EPIDEMIC")
+recovered_bar=fig
+
+df2 = df.sort_values('RECOVERED')
+fig = px.bar(df2, x='EPIDEMIC', y='RECOVERED',color = "EPIDEMIC",log_y=True)
+recovered_log_bar=fig
+
+df2 = df.sort_values('FATILITY RATE')
+fig = px.bar(df2, x='EPIDEMIC', y='FATILITY RATE',color = "EPIDEMIC")
+fatality_bar=fig
+
+df2 = df.sort_values('NUMBER OF COUNTRIES',ascending=False)
+fig = px.bar(df2, x='NUMBER OF COUNTRIES', y='EPIDEMIC',color = "EPIDEMIC", orientation='h')
+countries_bar=fig
+
+#############################################################################################################################
+#############################################################################################################################
+############################                                 SCATTERPLOTS                   #################################
+#############################################################################################################################
+
+fig = px.scatter(df, x="CONFIRMED", y="DEATHS",size="FATILITY RATE", color="EPIDEMIC", hover_name="EPIDEMIC", log_x=True, log_y=True)
+confirmedvsdeath_scatter=fig
+
+fig = px.scatter(df, x="CONFIRMED", y="RECOVERED",size="FATILITY RATE", color="EPIDEMIC", hover_name="EPIDEMIC", log_x=True, log_y=True)
+confirmedvsr# ! pip install dash   
+# ! pip install dash-html-components                                         
+# ! pip install dash-core-components                                     
+# ! pip install plotly
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import pandas as pd
+import plotly.graph_objs as go
+from dash.dependencies import Input, Output
+import numpy as np
+from plotly.subplots import make_subplots
+import plotly.express as px
+import plotly.graph_objects as go
+import json
+import folium
+import requests
+import mimetypes
+import http.client
+import numpy as np
+import matplotlib.pyplot as plt
+from folium.plugins import HeatMap
+from pandas.io.json import json_normalize
+import seaborn as sns
+
+#COVID
+conn= http.client.HTTPSConnection("api.covid19api.com")
+payload=''
+headers={}
+conn.request("GET","/summary",payload,headers)
+res=conn.getresponse()
+data=res.read().decode('UTF-8')
+pd.set_option("display.max_rows", None, "display.max_columns", None)
+covid1=json.loads(data)
+pd.json_normalize(covid1['Countries'],sep=",")
+df=pd.DataFrame(covid1['Countries'])
+covid2=df.drop(columns=['ID','CountryCode','Slug','Date','Premium'],axis=1)
+covid2=covid2.sort_values(by=['TotalConfirmed'],ascending=False)
+covid2['Country'] = covid2['Country'].replace('Russian Federation', 'Russia')
+covid2['Country'] = covid2['Country'].replace('Iran, Islamic Republic of', 'Iran')
+covid2['Country'] = covid2['Country'].replace('Venezuela (Bolivarian Republic)', 'Venezuela')
+covid3=covid2
+
+# SARS
+sars_03 = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\sars_2003_complete_dataset_clean.csv",parse_dates=['Date'])
+sars_03 = sars_03[['Date', 'Country', 'Cumulative number of case(s)','Number of deaths', 'Number recovered']]
+sars_03.columns = ['Date', 'Country', 'Cases', 'Deaths', 'Recovered']
+sars_03 = sars_03.groupby(['Date', 'Country'])
+sars_03 = sars_03.sum().reset_index()
+sars_03['Cases'] = sars_03['Cases'].fillna(0)
+sars_03['Deaths'] = sars_03['Deaths'].fillna(0)
+sars_03['Recovered'] = sars_03['Recovered'].fillna(0)
+sars_latest = sars_03[sars_03['Date'] == max(sars_03['Date'])].reset_index()
+sars_latest=sars_latest.sort_values(by=['Cases'],ascending=False)
+
+# H1N1
+h1n1_09 = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\Pandemic_H1N1_2009.csv",parse_dates=['Update Time'])
+h1n1_09 = h1n1_09[['Update Time', 'Country', 'Cases','Deaths']]
+h1n1_09 = h1n1_09.groupby(['Update Time', 'Country'])
+h1n1_09 = h1n1_09.sum().reset_index()
+h1n1_09['Cases'] = h1n1_09['Cases'].fillna(0)
+h1n1_09['Deaths'] = h1n1_09['Deaths'].fillna(0)
+h1n1_09['Deaths'] = h1n1_09['Deaths'].astype('int')
+h1n1_latest=h1n1_09[h1n1_09['Update Time'] == max(h1n1_09['Update Time'])].reset_index()
+h1n1_latest=h1n1_latest.sort_values(by=['Cases'],ascending=False)
+h1n1_latest=h1n1_latest.drop([43])
+
+# EBOLA
+ebola_14 = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\ebola_2014_2016_clean.csv",parse_dates=['Date'])
+ebola_14 = ebola_14[['Date', 'Country',
+ 'Cumulative no. of confirmed, probable and suspected cases','Cumulative no. of confirmed, probable and suspected deaths']]
+ebola_14.columns = ['Date', 'Country', 'Cases', 'Deaths']
+ebola_14 = ebola_14.groupby(['Date', 'Country'])
+ebola_14 = ebola_14.sum().reset_index()
+ebola_14['Cases'] = ebola_14['Cases'].fillna(0)
+ebola_14['Deaths'] = ebola_14['Deaths'].fillna(0)
+ebola_14['Cases'] = ebola_14['Cases'].astype('int')
+ebola_14['Deaths'] = ebola_14['Deaths'].astype('int')
+ebola_latest = ebola_14[ebola_14['Date'] == max(ebola_14['Date'])].reset_index()
+ebola_latest=ebola_latest.sort_values(by=['Cases'],ascending=False)
+
+#MERS
+mers_latest = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\country_count_latest.csv")
+mers_latest=mers_latest.sort_values(by=['Confirmed'],ascending=False)
+
+coordinates=pd.read_csv(r"C:\Users\vansh\Desktop\DV-CSE3020\DV_Project\DV_Project\world_country_and_usa_states_latitude_and_longitude_values.csv")
+coordinates = coordinates.rename(columns={'country': 'Country'})
+coordinates= coordinates.drop(columns=['country_code', 'usa_state_code','usa_state_latitude','usa_state_longitude','usa_state'])
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.TotalConfirmed,point.TotalRecovered],
+                        fill_color='#000000').add_to(m)
+##########################################################################################################################
+############################                               TREEMAP                        ################################
+##########################################################################################################################
+
+fig = px.treemap(covid3, names='Country', parents=[""]*len(covid3), values='TotalConfirmed')
+fig.add_trace(go.Treemap(
+    labels = list(covid3.Country),
+    parents = [""]*len(covid3),
+    values =  list(covid3.TotalConfirmed),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+covid_treemap=fig
+
+h_df=h1n1_latest
+fig = px.treemap(h_df, names='Country', parents=[""]*len(h_df), values='Cases')
+fig.add_trace(go.Treemap(
+    labels = list(h_df.Country),
+    parents = [""]*len(h_df),
+    values =  list(h_df.Cases),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+h1n1_treemap=fig
+
+s_df=sars_latest
+fig = px.treemap(s_df, names='Country', parents=[""]*len(s_df), values='Cases')
+fig.add_trace(go.Treemap(
+    labels = list(s_df.Country),
+    parents = [""]*len(s_df),
+    values =  list(s_df.Cases),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+sars_treemap=fig
+
+m_df=mers_latest
+fig = px.treemap(m_df, names='Country', parents=[""]*len(m_df), values='Confirmed')
+fig.add_trace(go.Treemap(
+    labels = list(m_df.Country),
+    parents = [""]*len(m_df),
+    values =  list(m_df.Confirmed),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+mers_treemap=fig
+
+e_df=ebola_latest
+fig = px.treemap(e_df, names='Country', parents=[""]*len(e_df), values='Cases')
+fig.add_trace(go.Treemap(
+    labels = list(e_df.Country),
+    parents = [""]*len(e_df),
+    values =  list(e_df.Cases),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+ebola_treemap=fig
+#############################################################################################################################
+
+#############################################################################################################################
+######################################            GEOSPATIAL MAP          ###################################################
+#############################################################################################################################
+
+# H1N1 
+m6=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='H1N1',
+    data=h1n1_latest,
+    columns=['Country','Cases'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed H1N1 Cases',
+).add_to(m6)
+h1n1_final=pd.merge(h1n1_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Cases,point.Deaths],
+                        fill_color='#000000').add_to(m6)
+    
+h1n1_final.apply(plotDot,axis=1)
+m6.fit_bounds(m6.get_bounds())
+h1n1_geospatialmap=m6
+
+
+# SARS
+m4=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='SARS',
+    data=sars_latest,
+    columns=['Country','Cases'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed SARS Cases',
+).add_to(m4)
+sars_final=pd.merge(sars_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Cases,point.Deaths],
+                        fill_color='#000000').add_to(m4)
+
+sars_final.apply(plotDot,axis=1)
+m4.fit_bounds(m4.get_bounds())
+sars_geospatialmap=m4
+
+# MERS
+m5=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='MERS',
+    data=mers_latest,
+    columns=['Country','Confirmed'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed MERS Cases',
+).add_to(m5)
+mers_final=pd.merge(mers_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Confirmed],
+                        fill_color='#000000').add_to(m5)
+    
+mers_final.apply(plotDot,axis=1)
+m5.fit_bounds(m5.get_bounds())
+mers_geospatialmap=m5
+
+#EBOLA
+m3=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='EBOLA',
+    data=ebola_latest,
+    columns=['Country','Cases'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed EBOLA Cases',
+).add_to(m3)
+ebola_final=pd.merge(ebola_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Cases,point.Deaths],
+                        fill_color='#000000').add_to(m3)
+    
+ebola_final.apply(plotDot,axis=1)
+m3.fit_bounds(m3.get_bounds())
+ebola_geospatialmap=m3
+
+#COVID
+m=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='Covid-19',
+    data=covid3,
+    columns=['Country','TotalConfirmed'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed Covid Cases',
+).add_to(m)
+covid_final=pd.merge(covid3,coordinates,on='Country')
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.TotalConfirmed,point.TotalRecovered],
+                        fill_color='#000000').add_to(m)
+    
+covid_final.apply(plotDot,axis=1)
+m.fit_bounds(m.get_bounds())
+covid_geospatialmap = m
+#############################################################################################################################
+
+#############################################################################################################################
+######################################            STATISTICAL FIG          ###################################################
+#############################################################################################################################
+
+df = pd.read_csv(r'C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\PANDEMIC.csv')
+df.sort_values('CONFIRMED', ascending =False)
+
+color = ['aqua', 'lightcoral', 'yellowgreen', 'mediumpurple', 'mediumturquoise']
+rcolor = ['mediumturquoise', 'mediumpurple', 'yellowgreen', 'lightcoral', 'aqua']
+df2 = df.sort_values('DEATHS')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC")
+confirmed_bar=fig
+
+df2 = df.sort_values('CONFIRMED')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC", log_y=True)
+confirmed_log_bar=fig
+
+df2 = df.sort_values('CONFIRMED')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC")
+death_bar=fig
+
+df2 = df.sort_values('CONFIRMED')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC", log_y=True)
+death_log_bar=fig
+
+df2 = df.sort_values('RECOVERED')
+fig = px.bar(df2, x='EPIDEMIC', y='RECOVERED',color = "EPIDEMIC")
+recovered_bar=fig
+
+df2 = df.sort_values('RECOVERED')
+fig = px.bar(df2, x='EPIDEMIC', y='RECOVERED',color = "EPIDEMIC",log_y=True)
+recovered_log_bar=fig
+
+df2 = df.sort_values('FATILITY RATE')
+fig = px.bar(df2, x='EPIDEMIC', y='FATILITY RATE',color = "EPIDEMIC")
+fatality_bar=fig
+
+df2 = df.sort_values('NUMBER OF COUNTRIES',ascending=False)
+fig = px.bar(df2, x='NUMBER OF COUNTRIES', y='EPIDEMIC',color = "EPIDEMIC", orientation='h')
+countries_bar=fig
+
+#############################################################################################################################
+#############################################################################################################################
+############################                                 SCATTERPLOTS                   #################################
+#############################################################################################################################
+
+fig = px.scatter(df, x="CONFIRMED", y="DEATHS",size="FATILITY RATE", color="EPIDEMIC", hover_name="EPIDEMIC", log_x=True, log_y=True)
+confirmedvsdeath_scatter=fig
+
+fig = px.scatter(df, x="CONFIRMED", y="RECOVERED",size="FATILITY RATE", color="EPIDEMIC", hover_name="EPIDEMIC", log_x=True, log_y=True)
+confirmedvsrecovered_scatter=fig
+
+df2 = df.sort_values('NUMBER OF COUNTRIES',ascending=False)
+fig = px.scatter(df2, x='NUMBER OF COUNTRIES', y='EPIDEMIC')
+epidemicvscountry_scatter=fig
+
+# AREA GRAPHS
+df2 = df.sort_values('DEATHS')
+fig = px.area(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC")
+confirmedvsepidemic_area=fig
+
+df2 = df.sort_values('DEATHS')
+fig = px.area(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC",log_y=True)
+confirmedvsepidemic_log_area=fig
+
+df2 = df.sort_values('NUMBER OF COUNTRIES',ascending=False)
+fig = px.area(df2, x='EPIDEMIC', y='NUMBER OF COUNTRIES')
+countries_area=fig
+
+df2 = df.sort_values('FATILITY RATE')
+fig = px.area(df2, x='EPIDEMIC', y='FATILITY RATE')
+fatality_area=fig# ! pip install dash   
+# ! pip install dash-html-components                                         
+# ! pip install dash-core-components                                     
+# ! pip install plotly
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import pandas as pd
+import plotly.graph_objs as go
+from dash.dependencies import Input, Output
+import numpy as np
+from plotly.subplots import make_subplots
+import plotly.express as px
+import plotly.graph_objects as go
+import json
+import folium
+import requests
+import mimetypes
+import http.client
+import numpy as np
+import matplotlib.pyplot as plt
+from folium.plugins import HeatMap
+from pandas.io.json import json_normalize
+import seaborn as sns
+
+#COVID
+conn= http.client.HTTPSConnection("api.covid19api.com")
+payload=''
+headers={}
+conn.request("GET","/summary",payload,headers)
+res=conn.getresponse()
+data=res.read().decode('UTF-8')
+pd.set_option("display.max_rows", None, "display.max_columns", None)
+covid1=json.loads(data)
+pd.json_normalize(covid1['Countries'],sep=",")
+df=pd.DataFrame(covid1['Countries'])
+covid2=df.drop(columns=['ID','CountryCode','Slug','Date','Premium'],axis=1)
+covid2=covid2.sort_values(by=['TotalConfirmed'],ascending=False)
+covid2['Country'] = covid2['Country'].replace('Russian Federation', 'Russia')
+covid2['Country'] = covid2['Country'].replace('Iran, Islamic Republic of', 'Iran')
+covid2['Country'] = covid2['Country'].replace('Venezuela (Bolivarian Republic)', 'Venezuela')
+covid3=covid2
+
+# SARS
+sars_03 = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\sars_2003_complete_dataset_clean.csv",parse_dates=['Date'])
+sars_03 = sars_03[['Date', 'Country', 'Cumulative number of case(s)','Number of deaths', 'Number recovered']]
+sars_03.columns = ['Date', 'Country', 'Cases', 'Deaths', 'Recovered']
+sars_03 = sars_03.groupby(['Date', 'Country'])
+sars_03 = sars_03.sum().reset_index()
+sars_03['Cases'] = sars_03['Cases'].fillna(0)
+sars_03['Deaths'] = sars_03['Deaths'].fillna(0)
+sars_03['Recovered'] = sars_03['Recovered'].fillna(0)
+sars_latest = sars_03[sars_03['Date'] == max(sars_03['Date'])].reset_index()
+sars_latest=sars_latest.sort_values(by=['Cases'],ascending=False)
+
+# H1N1
+h1n1_09 = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\Pandemic_H1N1_2009.csv",parse_dates=['Update Time'])
+h1n1_09 = h1n1_09[['Update Time', 'Country', 'Cases','Deaths']]
+h1n1_09 = h1n1_09.groupby(['Update Time', 'Country'])
+h1n1_09 = h1n1_09.sum().reset_index()
+h1n1_09['Cases'] = h1n1_09['Cases'].fillna(0)
+h1n1_09['Deaths'] = h1n1_09['Deaths'].fillna(0)
+h1n1_09['Deaths'] = h1n1_09['Deaths'].astype('int')
+h1n1_latest=h1n1_09[h1n1_09['Update Time'] == max(h1n1_09['Update Time'])].reset_index()
+h1n1_latest=h1n1_latest.sort_values(by=['Cases'],ascending=False)
+h1n1_latest=h1n1_latest.drop([43])
+
+# EBOLA
+ebola_14 = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\ebola_2014_2016_clean.csv",parse_dates=['Date'])
+ebola_14 = ebola_14[['Date', 'Country',
+ 'Cumulative no. of confirmed, probable and suspected cases','Cumulative no. of confirmed, probable and suspected deaths']]
+ebola_14.columns = ['Date', 'Country', 'Cases', 'Deaths']
+ebola_14 = ebola_14.groupby(['Date', 'Country'])
+ebola_14 = ebola_14.sum().reset_index()
+ebola_14['Cases'] = ebola_14['Cases'].fillna(0)
+ebola_14['Deaths'] = ebola_14['Deaths'].fillna(0)
+ebola_14['Cases'] = ebola_14['Cases'].astype('int')
+ebola_14['Deaths'] = ebola_14['Deaths'].astype('int')
+ebola_latest = ebola_14[ebola_14['Date'] == max(ebola_14['Date'])].reset_index()
+ebola_latest=ebola_latest.sort_values(by=['Cases'],ascending=False)
+
+#MERS
+mers_latest = pd.read_csv(r"C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\country_count_latest.csv")
+mers_latest=mers_latest.sort_values(by=['Confirmed'],ascending=False)
+
+coordinates=pd.read_csv(r"C:\Users\vansh\Desktop\DV-CSE3020\DV_Project\DV_Project\world_country_and_usa_states_latitude_and_longitude_values.csv")
+coordinates = coordinates.rename(columns={'country': 'Country'})
+coordinates= coordinates.drop(columns=['country_code', 'usa_state_code','usa_state_latitude','usa_state_longitude','usa_state'])
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.TotalConfirmed,point.TotalRecovered],
+                        fill_color='#000000').add_to(m)
+##########################################################################################################################
+############################                               TREEMAP                        ################################
+##########################################################################################################################
+
+fig = px.treemap(covid3, names='Country', parents=[""]*len(covid3), values='TotalConfirmed')
+fig.add_trace(go.Treemap(
+    labels = list(covid3.Country),
+    parents = [""]*len(covid3),
+    values =  list(covid3.TotalConfirmed),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+covid_treemap=fig
+
+h_df=h1n1_latest
+fig = px.treemap(h_df, names='Country', parents=[""]*len(h_df), values='Cases')
+fig.add_trace(go.Treemap(
+    labels = list(h_df.Country),
+    parents = [""]*len(h_df),
+    values =  list(h_df.Cases),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+h1n1_treemap=fig
+
+s_df=sars_latest
+fig = px.treemap(s_df, names='Country', parents=[""]*len(s_df), values='Cases')
+fig.add_trace(go.Treemap(
+    labels = list(s_df.Country),
+    parents = [""]*len(s_df),
+    values =  list(s_df.Cases),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+sars_treemap=fig
+
+m_df=mers_latest
+fig = px.treemap(m_df, names='Country', parents=[""]*len(m_df), values='Confirmed')
+fig.add_trace(go.Treemap(
+    labels = list(m_df.Country),
+    parents = [""]*len(m_df),
+    values =  list(m_df.Confirmed),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+mers_treemap=fig
+
+e_df=ebola_latest
+fig = px.treemap(e_df, names='Country', parents=[""]*len(e_df), values='Cases')
+fig.add_trace(go.Treemap(
+    labels = list(e_df.Country),
+    parents = [""]*len(e_df),
+    values =  list(e_df.Cases),
+    textinfo = "label+value+percent parent",
+    ),row = 1, col = 1)
+ebola_treemap=fig
+#############################################################################################################################
+
+#############################################################################################################################
+######################################            GEOSPATIAL MAP          ###################################################
+#############################################################################################################################
+
+# H1N1 
+m6=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='H1N1',
+    data=h1n1_latest,
+    columns=['Country','Cases'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed H1N1 Cases',
+).add_to(m6)
+h1n1_final=pd.merge(h1n1_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Cases,point.Deaths],
+                        fill_color='#000000').add_to(m6)
+    
+h1n1_final.apply(plotDot,axis=1)
+m6.fit_bounds(m6.get_bounds())
+h1n1_geospatialmap=m6
+
+
+# SARS
+m4=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='SARS',
+    data=sars_latest,
+    columns=['Country','Cases'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed SARS Cases',
+).add_to(m4)
+sars_final=pd.merge(sars_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Cases,point.Deaths],
+                        fill_color='#000000').add_to(m4)
+
+sars_final.apply(plotDot,axis=1)
+m4.fit_bounds(m4.get_bounds())
+sars_geospatialmap=m4
+
+# MERS
+m5=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='MERS',
+    data=mers_latest,
+    columns=['Country','Confirmed'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed MERS Cases',
+).add_to(m5)
+mers_final=pd.merge(mers_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Confirmed],
+                        fill_color='#000000').add_to(m5)
+    
+mers_final.apply(plotDot,axis=1)
+m5.fit_bounds(m5.get_bounds())
+mers_geospatialmap=m5
+
+#EBOLA
+m3=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+url='https://raw.githubusercontent.com/python-visualization/folium/master/examples/data'
+country_shapes=f'{url}/world-countries.json'
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='EBOLA',
+    data=ebola_latest,
+    columns=['Country','Cases'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed EBOLA Cases',
+).add_to(m3)
+ebola_final=pd.merge(ebola_latest,coordinates,on='Country')
+
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.Cases,point.Deaths],
+                        fill_color='#000000').add_to(m3)
+    
+ebola_final.apply(plotDot,axis=1)
+m3.fit_bounds(m3.get_bounds())
+ebola_geospatialmap=m3
+
+#COVID
+m=folium.Map(tiles="Stamen Terrain",min_zoom=1.5)
+folium.Choropleth(
+    geo_data=country_shapes,
+    min_zoom=2,
+    name='Covid-19',
+    data=covid3,
+    columns=['Country','TotalConfirmed'],
+    key_on='feature.properties.name',
+    fill_color='OrRd',
+    nan_fill_color='white',
+    legend_name='Total Confirmed Covid Cases',
+).add_to(m)
+covid_final=pd.merge(covid3,coordinates,on='Country')
+def plotDot(point):
+    folium.CircleMarker(location=[point.latitude,point.longitude],
+                        radius=5,
+                        weight=2,
+                        popup=[point.Country,point.TotalConfirmed,point.TotalRecovered],
+                        fill_color='#000000').add_to(m)
+    
+covid_final.apply(plotDot,axis=1)
+m.fit_bounds(m.get_bounds())
+covid_geospatialmap = m
+#############################################################################################################################
+
+#############################################################################################################################
+######################################            STATISTICAL FIG          ###################################################
+#############################################################################################################################
+
+df = pd.read_csv(r'C:\Users\91957\Desktop\DV-CSE3020\DV_Project\DV_Project\PANDEMIC.csv')
+df.sort_values('CONFIRMED', ascending =False)
+
+color = ['aqua', 'lightcoral', 'yellowgreen', 'mediumpurple', 'mediumturquoise']
+rcolor = ['mediumturquoise', 'mediumpurple', 'yellowgreen', 'lightcoral', 'aqua']
+df2 = df.sort_values('DEATHS')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC")
+confirmed_bar=fig
+
+df2 = df.sort_values('CONFIRMED')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC", log_y=True)
+confirmed_log_bar=fig
+
+df2 = df.sort_values('CONFIRMED')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC")
+death_bar=fig
+
+df2 = df.sort_values('CONFIRMED')
+fig = px.bar(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC", log_y=True)
+death_log_bar=fig
+
+df2 = df.sort_values('RECOVERED')
+fig = px.bar(df2, x='EPIDEMIC', y='RECOVERED',color = "EPIDEMIC")
+recovered_bar=fig
+
+df2 = df.sort_values('RECOVERED')
+fig = px.bar(df2, x='EPIDEMIC', y='RECOVERED',color = "EPIDEMIC",log_y=True)
+recovered_log_bar=fig
+
+df2 = df.sort_values('FATILITY RATE')
+fig = px.bar(df2, x='EPIDEMIC', y='FATILITY RATE',color = "EPIDEMIC")
+fatality_bar=fig
+
+df2 = df.sort_values('NUMBER OF COUNTRIES',ascending=False)
+fig = px.bar(df2, x='NUMBER OF COUNTRIES', y='EPIDEMIC',color = "EPIDEMIC", orientation='h')
+countries_bar=fig
+
+#############################################################################################################################
+#############################################################################################################################
+############################                                 SCATTERPLOTS                   #################################
+#############################################################################################################################
+
+fig = px.scatter(df, x="CONFIRMED", y="DEATHS",size="FATILITY RATE", color="EPIDEMIC", hover_name="EPIDEMIC", log_x=True, log_y=True)
+confirmedvsdeath_scatter=fig
+
+fig = px.scatter(df, x="CONFIRMED", y="RECOVERED",size="FATILITY RATE", color="EPIDEMIC", hover_name="EPIDEMIC", log_x=True, log_y=True)
+confirmedvsrecovered_scatter=fig
+
+df2 = df.sort_values('NUMBER OF COUNTRIES',ascending=False)
+fig = px.scatter(df2, x='NUMBER OF COUNTRIES', y='EPIDEMIC')
+epidemicvscountry_scatter=fig
+
+# AREA GRAPHS
+df2 = df.sort_values('DEATHS')
+fig = px.area(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC")
+confirmedvsepidemic_area=fig
+
+df2 = df.sort_values('DEATHS')
+fig = px.area(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC",log_y=True)
+confirmedvsepidemic_log_area=fig
+
+df2 = df.sort_values('NUMBER OF COUNTRIES',ascending=False)
+fig = px.area(df2, x='EPIDEMIC', y='NUMBER OF COUNTRIES')
+countries_area=fig
+
+df2 = df.sort_values('FATILITY RATE')
+fig = px.area(df2, x='EPIDEMIC', y='FATILITY RATE')
+fatality_area=figecovered_scatter=fig
+
+df2 = df.sort_values('NUMBER OF COUNTRIES',ascending=False)
+fig = px.scatter(df2, x='NUMBER OF COUNTRIES', y='EPIDEMIC')
+epidemicvscountry_scatter=fig
+
+# AREA GRAPHS
+df2 = df.sort_values('DEATHS')
+fig = px.area(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC")
+confirmedvsepidemic_area=fig
+
+df2 = df.sort_values('DEATHS')
+fig = px.area(df2, x='EPIDEMIC', y='CONFIRMED',color = "EPIDEMIC",log_y=True)
+confirmedvsepidemic_log_area=fig
+
+df2 = df.sort_values('NUMBER OF COUNTRIES',ascending=False)
+fig = px.area(df2, x='EPIDEMIC', y='NUMBER OF COUNTRIES')
+countries_area=fig
+
+df2 = df.sort_values('FATILITY RATE')
+fig = px.area(df2, x='EPIDEMIC', y='FATILITY RATE')
+fatality_area=fig
