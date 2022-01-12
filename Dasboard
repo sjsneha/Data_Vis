@@ -1,0 +1,502 @@
+import dash
+import dash_bootstrap_components as dbc
+from dash import Input, Output, dcc, html
+import base64
+
+a = dash.Dash()
+app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.FONT_AWESOME, dbc.icons.BOOTSTRAP])
+app1 = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app2 = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app3 = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app4 = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app5 = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app6 = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app10 = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+image_filename = 'COVID.png' # replace with your own image
+encoded_image = base64.b64encode(open(image_filename, 'rb').read())
+
+a.layout = html.Div([
+    html.H1(children='Coronavirus (COVID-19) Dashboard'),
+    
+    html.Div(children='''
+        Globally, as of 7:55pm CET, 7 December 2021, there have been 265,713,467 confirmed cases of COVID-19,
+including 5,260,888 deaths, reported to WHO. As of 5 December 2021, a total of 7,952,750,402 vaccine
+doses have been administered.
+Welcome to the website. Millions of individuals are being affected by the fast spread of the COVID-19 virus throughout the world.
+Our goal is to compile reliable COVID-19-related information that is simple to find, comprehend, and act on.
+Here, we'll try to explain how to explore enormous volumes of data, and we'll keep this website updated when new evidence becomes available.
+The individuals we've been working with are our target audiences: journalists, non-governmental organisations,
+and residents of the communities we're working with. Others may find this valuable as well.
+This content will be expanded, modified, and updated on a regular basis. Please come back as frequently as you can and let us know how we can make this site more useful.
+    '''),
+    #html.Img(src='data:image/png;base64,{}'.format(encoded_image))
+    html.Img(src=app.get_asset_url('COVID3.png'))
+])
+
+app2.layout = html.Div([
+    dcc.Tabs(id='tabs-example', value='tab-1', children=[
+        dcc.Tab(label='COVID - Total Cases', value='tab-1'),
+        dcc.Tab(label='Other Pandemics - Total Cases', value='tab-2'),
+    ]),
+    html.Div(id='tabs-example-content-1')
+])
+
+@app.callback(
+    Output('tabs-example-content-1', 'children'),
+    Input('tabs-example', 'value')
+)
+def render_content(tab):
+    if tab == 'tab-1':
+        return html.Div([
+            html.H5('Covid 19-is a contagious disease caused by severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2). The first known case was identified in Wuhan, China, in December 2019.'),
+            dcc.Graph(
+                figure=covid_treemap
+            )
+        ])
+    elif tab == 'tab-2':
+        return html.Div(children=[
+    html.Div([
+        html.H3(children='H1N1'),
+
+        html.Div(children='''
+            H1N1 flu (swine flu)
+            In the spring of 2009, scientists recognized a particular strain of flu virus known as H1N1.
+            It is primarily caused by the H1N1 strain of the flu (influenza) virus.
+        '''),
+
+        dcc.Graph(
+            id='graph1',
+            figure=h1n1_treemap
+        ),  
+    ]),
+    # New Div for all elements in the new 'row' of the page
+    html.Div([
+        html.H3(children='MERS'),
+
+        html.Div(children='''
+        A viral respiratory illness caused by a coronavirus.
+        It is a contagious, sometimes fatal respiratory illness. It's often spread through close contact with an infected person.
+        '''),
+
+        dcc.Graph(
+            id='graph2',
+            figure=mers_treemap
+        ),  
+    ]),
+     # New Div for all elements in the new 'row' of the page
+    html.Div([
+        html.H3(children='EBOLA'),
+
+        html.Div(children='''
+        A virus that causes severe bleeding, organ failure and can lead to death.
+        Humans may spread the virus to other humans through contact with bodily fluids such as blood.
+        '''),
+
+        dcc.Graph(
+            id='graph3',
+            figure=ebola_treemap
+        ),  
+    ]),
+     # New Div for all elements in the new 'row' of the page
+    html.Div([
+        html.H3(children='SARS'),
+
+        html.Div(children='''
+        SARS appeared in 2002 in China. 
+        It is a virus transmitted through droplets that enter the air when someone with the disease coughs, sneezes or talks.
+        '''),
+
+        dcc.Graph(
+            id='graph4',
+            figure=sars_treemap
+        ),  
+    ]),
+])
+    
+app1.layout = html.Div([
+    dcc.Tabs(id='tabs-example1', value='tab-1', children=[
+        dcc.Tab(label='COVID', value='tab-1'),
+        dcc.Tab(label='Other Pandemics', value='tab-2'),
+    ]),
+    html.Div(id='tabs-example-content-2')
+])
+
+@app.callback(
+    Output('tabs-example-content-2', 'children'),
+    Input('tabs-example1', 'value')
+)
+def render_content(tab):
+    if tab == 'tab-1':
+        return html.Div([
+            html.H5('Covid 19-is a contagious disease caused by severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2). The first known case was identified in Wuhan, China, in December 2019.'),
+            dcc.Graph(
+                figure=covid_geospatialmap
+            )
+        ])
+    elif tab == 'tab-2':
+        return html.Div(children=[
+    html.Div([
+        html.H3(children='H1N1'),
+
+        html.Div(children='''
+            H1N1 flu (swine flu)
+            In the spring of 2009, scientists recognized a particular strain of flu virus known as H1N1.
+            It is primarily caused by the H1N1 strain of the flu (influenza) virus.
+        '''),
+
+        dcc.Graph(
+            id='graph11',
+            figure=h1n1_geospatialmap
+        ),  
+    ]),
+    # New Div for all elements in the new 'row' of the page
+    html.Div([
+        html.H3(children='MERS'),
+
+        html.Div(children='''
+        A viral respiratory illness caused by a coronavirus.
+        It is a contagious, sometimes fatal respiratory illness. It's often spread through close contact with an infected person.
+        '''),
+
+        dcc.Graph(
+            id='graph21',
+            figure=mers_geospatialmap
+        ),  
+    ]),
+     # New Div for all elements in the new 'row' of the page
+    html.Div([
+        html.H3(children='EBOLA'),
+
+        html.Div(children='''
+        A virus that causes severe bleeding, organ failure and can lead to death.
+        Humans may spread the virus to other humans through contact with bodily fluids such as blood.
+        '''),
+
+        dcc.Graph(
+            id='graph31',
+            figure=ebola_geospatialmap
+        ),  
+    ]),
+     # New Div for all elements in the new 'row' of the page
+    html.Div([
+        html.H3(children='SARS'),
+
+        html.Div(children='''
+        SARS appeared in 2002 in China. 
+        It is a virus transmitted through droplets that enter the air when someone with the disease coughs, sneezes or talks.
+        '''),
+
+        dcc.Graph(
+            id='graph41',
+            figure=sars_geospatialmap
+        ),  
+    ]),
+])
+
+app3.layout = html.Div([
+    dcc.Tabs(id='tabs-example3', value='tab-5', children=[
+        dcc.Tab(label='Confirmed Cases', value='tab-1'),
+        dcc.Tab(label='Recovered Cases', value='tab-2'),
+        dcc.Tab(label='Death Cases', value='tab-3'),
+        dcc.Tab(label='Fatality Cases', value='tab-4'),
+        dcc.Tab(label='Number of Countries', value='tab-5'),
+    ]),
+    html.Div(id='tabs-example-content-3')
+])
+
+@app.callback(
+    Output('tabs-example-content-3', 'children'),
+    Input('tabs-example3', 'value')
+)
+def render_content(tab):
+    if tab == 'tab-1':
+        return html.Div(children=[
+    html.Div([
+        html.H3(children='Actual Graph:'),
+        dcc.Graph(
+            id='graph112',
+            figure=confirmed_bar
+        ),  
+    ]),
+    # New Div for all elements in the new 'row' of the page
+    html.Div([
+        html.H3(children='Logarithmic Graph:'),
+        dcc.Graph(
+            id='graph222',
+            figure=confirmed_log_bar
+        ),  
+    ]),
+])
+    elif tab == 'tab-2':
+        return html.Div(children=[
+    html.Div([
+        html.H3(children='Actual Graph:'),
+        dcc.Graph(
+            id='graph113',
+            figure=recovered_bar
+        ),  
+    ]),
+    # New Div for all elements in the new 'row' of the page
+    html.Div([
+        html.H3(children='Logarithmic Graph:'),
+        dcc.Graph(
+            id='graph224',
+            figure=recovered_log_bar
+        ),  
+    ]),
+])
+    elif tab == 'tab-3':
+        return html.Div(children=[
+    html.Div([
+        html.H3(children='Actual Graph:'),
+        dcc.Graph(
+            id='graph113',
+            figure=death_bar
+        ),  
+    ]),
+    # New Div for all elements in the new 'row' of the page
+    html.Div([
+        html.H3(children='Logarithmic Graph:'),
+        dcc.Graph(
+            id='graph224',
+            figure=death_log_bar
+        ),  
+    ]),
+])
+    elif tab == 'tab-4':
+        return html.Div(children=[
+    html.Div([
+        #html.H3(children='Actual Graph:'),
+        dcc.Graph(
+            id='graph113',
+            figure=fatality_bar
+        ),  
+    ]),
+])
+    elif tab == 'tab-5':
+        return html.Div(children=[
+    html.Div([
+        #html.H3(children='Actual Graph:'),
+        dcc.Graph(
+            id='graph113',
+            figure=countries_bar
+        ),  
+    ]),
+])
+    
+app4.layout = html.Div([
+    dcc.Tabs(id='tabs-example4', value='tab-1', children=[
+        dcc.Tab(label='Confirmed vs Death', value='tab-1'),
+        dcc.Tab(label='Confirmed vs Recovered', value='tab-2'),
+        dcc.Tab(label='Epidemic vs Country', value='tab-3'),
+    ]),
+    html.Div(id='tabs-example-content-4')
+])
+
+@app.callback(
+    Output('tabs-example-content-4', 'children'),
+    Input('tabs-example4', 'value')
+)
+def render_content(tab):
+    if tab == 'tab-1':
+        return html.Div([
+            #html.H3('Confirmed vs Death'),
+            dcc.Graph(
+                figure=confirmedvsdeath_scatter
+            )
+        ])
+    elif tab == 'tab-2':
+        return html.Div(children=[
+    html.Div([
+        #html.H3(children='Confirmed vs Recovered'),
+        dcc.Graph(
+            id='graph122112',
+            figure=confirmedvsrecovered_scatter
+        ),  
+    ]),
+])
+    elif tab == 'tab-3':
+        return html.Div(children=[
+    html.Div([
+        #html.H3(children='Epidemic vs Country'),
+        dcc.Graph(
+            id='graph12121',
+            figure=epidemicvscountry_scatter
+        ),  
+    ]),
+])
+app5.layout = html.Div([
+    dcc.Tabs(id='tabs-example5', value='tab-1', children=[
+        dcc.Tab(label='Confirmed vs Epidemic', value='tab-1'),
+        dcc.Tab(label='Countries', value='tab-2'),
+        dcc.Tab(label='Fatality', value='tab-3'),
+    ]),
+    html.Div(id='tabs-example-content-5')
+])
+
+@app.callback(
+    Output('tabs-example-content-5', 'children'),
+    Input('tabs-example5', 'value')
+)
+def render_content(tab):
+    if tab == 'tab-1':
+        return html.Div([
+            dcc.Graph(
+                figure=confirmedvsepidemic_log_area
+            )
+        ])
+    elif tab == 'tab-2':
+        return html.Div(children=[
+    html.Div([
+        dcc.Graph(
+            id='graph122112123',
+            figure=countries_area
+        ),  
+    ]),
+])
+    elif tab == 'tab-3':
+        return html.Div(children=[
+    html.Div([
+        dcc.Graph(
+            id='graph12121123',
+            figure=fatality_area
+        ),  
+    ]),
+])
+app10.layout = html.Div([
+    dcc.Tabs(id='tabs-example10', value='tab-1', children=[
+        dcc.Tab(label='Regression', value='tab-1'),
+        dcc.Tab(label='Tree Maps', value='tab-2'),
+        dcc.Tab(label='Scatterplot', value='tab-3'),
+        
+    ]),
+    html.Div(id='tabs-example-content-10')
+])
+
+@app.callback(
+    Output('tabs-example-content-10', 'children'),
+    Input('tabs-example10', 'value')
+)
+def render_content(tab):
+    if tab == 'tab-1':
+        return html.Div([
+            html.H4('Regression - New Cases vs New Deaths'),
+            html.Img(src=app.get_asset_url('reg1.jpeg')),
+            html.H4('Regression - Total Cases vs Total Deaths'),
+            html.Img(src=app.get_asset_url('reg2.jpeg'))
+        ])
+    elif tab == 'tab-2':
+        return html.Div(children=[
+    html.Div([
+        html.H3(children='Covid Deaths'),
+        dcc.Graph(
+            id='graph1111111',
+            figure=covid_deaths
+        ),  
+    ]),
+     # New Div for all elements in the new 'row' of the page
+    html.Div([
+        html.H3(children='Covid Cases'),
+        dcc.Graph(
+            id='graph4',
+            figure=covid_cases
+        ),  
+    ]),
+])
+    elif tab == 'tab-3':
+        return html.Div(children=[
+    html.Div([
+        html.H3(children='Deaths VS Confirmed Cases'),
+        dcc.Graph(
+            id='graph1111111',
+            figure=deathconfirmed
+        ),  
+    ]),
+     # New Div for all elements in the new 'row' of the page
+    html.Div([
+        dcc.Graph(
+            id='graph44444444',
+            figure=newscatter
+        ),  
+    ])
+])
+
+# the style arguments for the sidebar. We use position:fixed and a fixed width
+SIDEBAR_STYLE = {
+    "position": "fixed",
+    "top": 0,
+    "left": 0,
+    "bottom": 0,
+    "width": "16rem",
+    "padding": "2rem 1rem",
+    "background-color": "#f8f9fa",
+}
+
+# the styles for the main content position it to the right of the sidebar and
+# add some padding.
+CONTENT_STYLE = {
+    "margin-left": "18rem",
+    "margin-right": "2rem",
+    "padding": "2rem 1rem",
+}
+
+sidebar = html.Div(
+    [
+        html.H2("COVID DASH", className="display-4"),
+        html.Hr(),
+        html.P(
+            "Abhinav Jaiswal - 20BCE2624", className="lead"
+        ),
+        html.P(
+            "Vanshit Kandoi - 20BCE2667", className="lead"
+        ),
+        html.P(
+            "Sneha Jayshri - 20BCE2673", className="lead"
+        ),
+        dbc.Nav(
+            [
+                dbc.NavLink("Home", href="/", active="exact"),
+                dbc.NavLink("Comparison - Treemaps", href="/page-1", active="exact"),
+                #dbc.NavLink("Comparison - Geospatial Maps", href="/page-2", active="exact"),
+                dbc.NavLink("Comparison - Bar Graphs", href="/page-3", active="exact"),
+                dbc.NavLink("Comparison - Scatterplots", href="/page-4", active="exact"),
+                dbc.NavLink("Comparison - Area Graphs", href="/page-5", active="exact"),
+                dbc.NavLink("COVID", href="/page-6", active="exact"),
+            ],
+            vertical=True,
+            pills=True,
+        ),
+    ],
+    style=SIDEBAR_STYLE,
+)
+
+content = html.Div(id="page-content", children = [], style=CONTENT_STYLE)
+app.layout = html.Div([dcc.Location(id="url"), sidebar, content])
+@app.callback(Output("page-content", "children"), [Input("url", "pathname")])
+def render_page_content(pathname):
+    if pathname == "/":
+        return a.layout#html.P("This is the content of the home page!")
+    elif pathname == "/page-1":
+        return app2.layout
+    elif pathname == "/page-2":
+        return app1.layout
+    elif pathname == "/page-3":
+        return app3.layout
+    elif pathname == "/page-4":
+        return app4.layout
+    elif pathname == "/page-5":
+        return app5.layout#html.P("Oh cool, this is page 5!")
+    elif pathname == "/page-6":
+        return app10.layout
+    # If the user tries to reach a different page, return a 404 message
+    return dbc.Jumbotron(
+        [
+            html.H1("404: Not found", className="text-danger"),
+            html.Hr(),
+            html.P(f"The pathname {pathname} was not recognised..."),
+        ]
+    )
+
+if _name_ == "_main_":
+    app.run_server()
